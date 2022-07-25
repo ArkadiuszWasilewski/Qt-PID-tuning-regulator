@@ -7,7 +7,8 @@
 
 # Qt Application
 
-![screenshot_25_07_22](https://user-images.githubusercontent.com/106441011/180827398-5047a06e-c63b-4554-84b7-177e3d4435c7.png)
+![screenshot2_25_07_22](https://user-images.githubusercontent.com/106441011/180836256-c61c20fe-4243-49cc-a051-e6ef0023f7b8.png)
+
 
 Responsive design application ready for deploy on various embedded platforms (such as Raspberry Pi)
 
@@ -15,8 +16,7 @@ Done:
 - UART communication (search for available ports, choose Baudrate, connect)
 - Log system
 - Realtime plotting based on received data from MCU
-
-
+- manual PID parameters tuning (while auto update is checked values from application is automatically updated to MCU)
 
 TO DO:
 - add graph features such as pointers, hover mouseover etc
