@@ -22,7 +22,7 @@ TO DO:
 - add graph features such as pointers, hover mouseover etc
 - add combobox with auto-tuning methods (such as Ziegler-Nichols)
 - separate manual PID parameters setting and automatical PID tuning
-- saving test results in CSV file, and on this
+- saving test results in CSV file
 
 
 # Embedded
