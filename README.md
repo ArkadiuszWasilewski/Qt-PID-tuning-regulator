@@ -9,7 +9,7 @@
 
 ![screenshot_25_07_22](https://user-images.githubusercontent.com/106441011/180827398-5047a06e-c63b-4554-84b7-177e3d4435c7.png)
 
-Responsive application ready for deploy on various embedded platforms (such as Raspberry Pi)
+Responsive design application ready for deploy on various embedded platforms (such as Raspberry Pi)
 
 Done:
 - UART communication (search for available ports, choose Baudrate, connect)
