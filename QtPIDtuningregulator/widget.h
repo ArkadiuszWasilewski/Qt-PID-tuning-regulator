@@ -26,10 +26,10 @@ private slots:
     void readFromPort();
 
     void makePlot();
-    void updateReceivedValue();
     void realtimeDataSlot();
 
     void sendMsgToDevice(QString message);
+    QString updateMessageToSend();
 
     void on_connectButton_clicked();
     void on_searchButton_clicked();
@@ -38,23 +38,38 @@ private slots:
 
     void on_pidAutoCheckbox_toggled(bool checked);
 
+    void on_vstSlider_valueChanged(int value);
+
+    void on_kpSlider_valueChanged(int value);
+
+    void on_kiSlider_valueChanged(int value);
+
+    void on_kdSlider_valueChanged(int value);
+
+    void on_legendCheckBox_clicked(bool checked);
+
 private:
     Ui::Widget *ui;
 
     QSerialPort * newDevice;
 
-    //Reading serial variables
-    QByteArray serialData;
-    QString serialBuffer;
-
     //Writing serial variables
     QString updatePIDMessage;
 
 
+    float a_setVelocity; // a_ means that this data became from Arduino serial port
+    float a_measuredVelocity;
 
-    double velocity;
-    double setVelocity;
-    double value;
+    float setVelocity; // set velocity from GUI slider
+
+
+    float Kp;
+    float Ki;
+    float Kd;
+    int tuningMethod;
+
+
+
 
     QTimer dataTimer;
 
@@ -63,7 +78,6 @@ private:
 
 
     void addToLogs(QString message);
-
 
 };
 #endif // WIDGET_H

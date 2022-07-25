@@ -20,9 +20,13 @@ Widget::Widget(QWidget *parent)
         ui->baudrateCombobox->addItem(QString::number(QSerialPortInfo::standardBaudRates()[i]));
     }
 
-    velocity = 0;
+    a_measuredVelocity = 0;
+    a_setVelocity = 0;
     setVelocity = 0;
-    value = 0;
+    Kp = 0;
+    Ki = 0;
+    Kd = 0;
+    tuningMethod = 0;
 
     this->newDevice = new QSerialPort(this);
 
@@ -44,12 +48,11 @@ Widget::~Widget()
 void Widget::readFromPort()
 {
 
-
     while(this->newDevice->canReadLine())
     {
-        QStringList words={"0", "0", "0","0"};
+        QStringList words={"0", "0", "0", "0", "0"};
         QString line = this->newDevice->readLine();
-        //qDebug() << line;
+        qDebug() << line;
 
 
         QString terminator = "\r";
@@ -61,43 +64,80 @@ void Widget::readFromPort()
         }
 
 
-        words = line.left(pos).split(",");
+        words = line.left(pos).split(',');
 
-        if(words.length()==1)
-        {
-            setVelocity = words[0].toDouble();
-        }
-        else if(words.length()==2)
-        {
-            setVelocity = words[0].toDouble();
-            velocity = words[1].toDouble();
-        }
-        else if(words.length()==3)
-        {
-            setVelocity = words[0].toDouble();
-            velocity = words[1].toDouble();
-            value = words[2].toDouble();
-        }
+         switch(words.length())
+         {
+             case 1:
+             {
+                a_measuredVelocity = words[0].toDouble();
+                break;
+             }
+             case 2:
+             {
+                a_measuredVelocity = words[0].toDouble();
+                a_setVelocity = words[1].toDouble();
+                break;
+             }
+             case 3:
+             {
+                a_measuredVelocity = words[0].toDouble();
+                a_setVelocity = words[1].toDouble();
+
+                break;
+             }
+             case 4:
+             {
+                 a_measuredVelocity = words[0].toDouble();
+                 a_setVelocity = words[1].toDouble();
+
+                break;
+             }
+             case 5:
+             {
+                a_measuredVelocity = words[0].toDouble();
+                a_setVelocity = words[1].toDouble();
+
+                break;
+             }
+             default:
+             {
+                qDebug() << "Cannot read full data from serialport";
+             }
+         }
+
     }
-
-
-    Widget::updateReceivedValue();
 }
 
 void Widget::makePlot()
 {
+    QFont legendFont = font();
+    legendFont.setPointSize(9);
+    ui->customPlot->legend->setFont(legendFont);
+    ui->customPlot->legend->setBrush(QBrush(QColor(255,255,255,230)));
+    ui->customPlot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignBottom|Qt::AlignLeft);
+
+
     ui->customPlot->addGraph(); // blue line
     ui->customPlot->graph(0)->setPen(QPen(QColor(40, 110, 255)));
+    ui->customPlot->graph(0)->setName("Program set velocity");
+
     ui->customPlot->addGraph(); // red line
     ui->customPlot->graph(1)->setPen(QPen(QColor(255, 110, 40)));
+    ui->customPlot->graph(1)->setName("Measured velocity");
+
     ui->customPlot->addGraph(); // yellow line
     ui->customPlot->graph(2)->setPen(QPen(QColor(255, 210, 40)));
+    ui->customPlot->graph(2)->setName("Actual set velocity in MCU");
+
+
+
 
     QSharedPointer<QCPAxisTickerTime> timeTicker(new QCPAxisTickerTime);
     timeTicker->setTimeFormat("%h:%m:%s");
     ui->customPlot->xAxis->setTicker(timeTicker);
     ui->customPlot->axisRect()->setupFullAxesBox();
-    ui->customPlot->yAxis->setRange(-500.0, 500.0);
+    ui->customPlot->yAxis->setRange(ui->vstSlider->minimum()-50, ui->vstSlider->maximum()+50);
 
     // make left and bottom axes transfer their ranges to right and top axes:
     connect(ui->customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->customPlot->xAxis2, SLOT(setRange(QCPRange)));
@@ -117,9 +157,9 @@ void Widget::realtimeDataSlot()
     if (key-lastPointKey > 0.005) // at most add point every 2 ms
     {
       // add data to lines:
-      //ui->customPlot->graph(0)->addData(key, value);
-      ui->customPlot->graph(1)->addData(key, velocity);
-      ui->customPlot->graph(2)->addData(key, setVelocity);
+      ui->customPlot->graph(0)->addData(key, setVelocity);  // setVelocity from GUI
+      ui->customPlot->graph(1)->addData(key, a_measuredVelocity); // measured velocity from Arduino
+      ui->customPlot->graph(2)->addData(key, a_setVelocity); // Vst from Arduino
 
       lastPointKey = key;
     }
@@ -137,19 +177,6 @@ void Widget::realtimeDataSlot()
       frameCount = 0;
     }
 }
-
-
-void Widget::updateReceivedValue()
-{
-
-    ui->label->setText(QString::number(setVelocity));
-    ui->label_2->setText(QString::number(velocity));
-    ui->label_3->setText(QString::number(value));
-    //qDebug()<<"Set vel: "<<setVelocity;
-    //qDebug()<<"Velocity:"<<velocity;
-    //qDebug()<< "Value:" << value;
-}
-
 
 void Widget::on_connectButton_clicked()
 {
@@ -238,31 +265,41 @@ void Widget::sendMsgToDevice(QString message)
 
 void Widget::on_pidUpdateButton_clicked()
 {
-   QString updatePIDMessage;
-   QString comma = ",";
-   QString terminator = "\r";
-   QString Vst = ui->vstValueLabel->text();
-   QString Kp = ui->kpValueLabel->text();
-   QString Ki = ui->kiValueLabel->text();
-   QString Kd = ui->kdValueLabel->text();
+   Widget::sendMsgToDevice(updateMessageToSend());
+}
+
+QString Widget::updateMessageToSend()
+{
+    QString updatePIDMessage;
+    QString comma = ",";
+    QString terminator = "\r";
+    QString strVst = QString::number(setVelocity);
+    QString strKp = QString::number(Kp);
+    QString strKi = QString::number(Ki);
+    QString strKd = QString::number(Kd);
+    QString strMethod = QString::number(tuningMethod);
 
 
-   updatePIDMessage.reserve(Vst.length()+comma.length()+Kp.length()+comma.length()+Ki.length()+comma.length()+Kd.length()+comma.length()+terminator.length());
-   updatePIDMessage.append(Vst);
-   updatePIDMessage.append(comma);
-   updatePIDMessage.append(Kp);
-   updatePIDMessage.append(comma);
-   updatePIDMessage.append(Ki);
-   updatePIDMessage.append(comma);
-   updatePIDMessage.append(Kd);
-   updatePIDMessage.append(comma);
-   updatePIDMessage.append(terminator);
+    updatePIDMessage.reserve(strVst.length()+comma.length()
+                             +strKp.length()+comma.length()
+                             +strKi.length()+comma.length()
+                             +strKd.length()+comma.length()
+                             +strMethod.length()+comma.length()
+                             +terminator.length());
 
+    updatePIDMessage.append(strVst);
+    updatePIDMessage.append(comma);
+    updatePIDMessage.append(strKp);
+    updatePIDMessage.append(comma);
+    updatePIDMessage.append(strKi);
+    updatePIDMessage.append(comma);
+    updatePIDMessage.append(strKd);
+    updatePIDMessage.append(comma);
+    updatePIDMessage.append(strMethod);
+    updatePIDMessage.append(comma);
+    updatePIDMessage.append(terminator);
 
-
-   Widget::sendMsgToDevice(updatePIDMessage);
-   qDebug() << "updatePIDMessage = " << updatePIDMessage;
-
+    return updatePIDMessage;
 }
 
 
@@ -279,4 +316,72 @@ void Widget::on_pidAutoCheckbox_toggled(bool checked)
         addToLogs("Manual update mode");
     }
 
+    if(ui->pidAutoCheckbox->isChecked())
+    {
+        Widget::sendMsgToDevice(updateMessageToSend());
+    }
+
 }
+
+void Widget::on_vstSlider_valueChanged(int value)
+{
+    setVelocity = value;
+    ui->vstValueLabel->setText(QString::number(setVelocity));
+
+    if(ui->pidAutoCheckbox->isChecked())
+    {
+        Widget::sendMsgToDevice(updateMessageToSend());
+    }
+
+}
+
+void Widget::on_kpSlider_valueChanged(int value)
+{
+    Kp = (float)value/10;
+    ui->kpValueLabel->setText(QString::number(Kp));
+
+    if(ui->pidAutoCheckbox->isChecked())
+    {
+        Widget::sendMsgToDevice(updateMessageToSend());
+    }
+}
+
+
+void Widget::on_kiSlider_valueChanged(int value)
+{
+    Ki = (float)value/10;
+    ui->kiValueLabel->setText(QString::number(Ki));
+
+    if(ui->pidAutoCheckbox->isChecked())
+    {
+        Widget::sendMsgToDevice(updateMessageToSend());
+    }
+}
+
+
+void Widget::on_kdSlider_valueChanged(int value)
+{
+    Kd = (float)value/10;
+    ui->kdValueLabel->setText(QString::number(Kd));
+
+    if(ui->pidAutoCheckbox->isChecked())
+    {
+        Widget::sendMsgToDevice(updateMessageToSend());
+    }
+}
+
+
+void Widget::on_legendCheckBox_clicked(bool checked)
+{
+    if(checked)
+    {
+        ui->customPlot->legend->setVisible(true);
+        addToLogs("Show legend on graph.");
+    }
+    else
+    {
+        ui->customPlot->legend->setVisible(false);
+        addToLogs("Hide legend on graph.");
+    }
+}
+
