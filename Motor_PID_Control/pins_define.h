@@ -10,5 +10,7 @@
 #define readA bitRead(PIND,pinA)  //faster than digitalRead()
 #define readB bitRead(PIND,pinB)
 
+#define BAUDRATE 9600
+
 #define SINGLE_INTERRUPT 1	// values for setting mode in encoder setup
 #define DUAL_INTERRUPT 2

@@ -6,7 +6,6 @@
 #include "pins_define.h"
 #include "MotorControl.h"
 #include <util/atomic.h>
-#include "SerialCom.h"
 
 //Defining buffer size of received message
 #define BUFFER_SZ 40
@@ -26,23 +25,23 @@ static volatile int receivedMethod;
 
 
 MotorControl motor1(PWM, DIR);
-SerialCom serial(9600);
 
 
 
 void setup() {
 	motor1.motorSetup();
 	
-	//Encoder Setup
+	//Encoder
 	pinMode(pinAenc, INPUT_PULLUP);
 	pinMode(pinBenc, INPUT_PULLUP);
 	
+	//Interrupts
 	attachInterrupt(digitalPinToInterrupt(pinAenc), countA, FALLING);
 	attachInterrupt(digitalPinToInterrupt(pinBenc), countB, FALLING);
 
-	Serial.begin(9600);
+	//Serial communication init
+	Serial.begin(BAUDRATE);
 }							
-
 
 void loop() {
   
@@ -52,10 +51,21 @@ void loop() {
 	}
 
 	//float Vst = 300 * (sin(motor1.currT / (1e6) * 0.5));
-	//float Vst = 500;
-	motor1.motorPID(receivedVset);
+	//float Vst = 300;
+	float Vst = receivedVset;
+
+	float Kp = receivedKp;
+	float Ki = receivedKi;
+	float Kd = receivedKd;
+	int Method = receivedMethod;
+
+	motor1.changeParams(Kp, Ki, Kd);
+	motor1.motorPID(Vst);
+	
 
 
+
+	//Buffer received
 	static char buffer[BUFFER_SZ];
 	static size_t lg = 0;
 
@@ -72,19 +82,17 @@ void loop() {
 		}
 
 	}
-
-
-	String bufferToSend;
-	String comma = ",";
-	//bufferToSend = (String)receivedVset + comma + (String)motor1.v1Filt + comma + (String)123;
-	//bufferToSend = (String)motor1.Kp + comma + (String)motor1.Ki + comma + (String)motor1.Kd;
-
-	bufferToSend = (String)receivedVset + comma + (String)receivedKp + comma + (String)receivedKi + comma + (String)receivedKd + comma + (String)receivedMethod;
-
-
-	Serial.println(bufferToSend);
-	delay(1);
-
+	 
+	//Buffer to send
+	Serial.print(motor1.v1Filt);
+	Serial.print(',');
+	Serial.println(Vst);
+	/*Serial.print(',');
+	Serial.print(0);
+	Serial.print(',');
+	Serial.print(0);
+	Serial.print(',');
+	Serial.println(0);*/
 }
 
 
@@ -100,20 +108,6 @@ void parse(char* buffer)
 	receivedKd = atoi(s);
 	s = strtok(NULL, ",");
 	receivedMethod = atoi(s);
-
-	Serial.print("Arduino: ");
-	Serial.print(receivedVset);
-	Serial.print(':');
-	Serial.print(receivedKp);
-	Serial.print(':');
-	Serial.print(receivedKi);
-	Serial.print(':');
-	Serial.print(receivedKd);
-	Serial.print(':');
-	Serial.println(receivedMethod);
-
-
-
 }
 
 //ISR - Interrupt Service Routines

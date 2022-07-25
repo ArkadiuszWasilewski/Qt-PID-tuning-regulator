@@ -14,5 +14,4 @@ C:\Users\twice\AppData\Local\Temp\VMBuilds\Motor_PID_Control\uno\Debug\Motor_PID
  c:\program\ files\microsoft\ visual\ studio\2022\community\common7\ide\extensions\2lz1l1ad.jaq\Micro\ Platforms\default\debuggers\VM_DBG/VM_DBG.h \
  C:\Users\twice\Desktop\arduino-1.8.19\hardware\arduino\avr\cores\arduino/Arduino.h \
  C:\Users\twice\AppData\Local\Temp\VMBuilds\Motor_PID_Control\uno\Debug\pins_define.h \
- C:\Users\twice\AppData\Local\Temp\VMBuilds\Motor_PID_Control\uno\Debug\MotorControl.h \
- C:\Users\twice\AppData\Local\Temp\VMBuilds\Motor_PID_Control\uno\Debug\SerialCom.h
+ C:\Users\twice\AppData\Local\Temp\VMBuilds\Motor_PID_Control\uno\Debug\MotorControl.h

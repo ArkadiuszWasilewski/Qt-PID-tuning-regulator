@@ -10,21 +10,16 @@ public:
 	~MotorControl();
 
 	void motorSetup();
-	void moveForward(int valPWM); //test
 	
 	void motorPID(float Vst);  //regulator on Arduino side
+	void changeParams(float setKp, float setKi, float setKd);
 	float measureVelocity();
 	void setMotor(int valDIR, int valPWM , int pinPWM); //
 	
-	void addToBuffer(float val);
 
 	int pos;
-	float Kp;
-	float Ki;
-	float Kd;
-	long currT;
-	
 	float v1Filt;
+	long currT;
 
 private:
 	int _pinPWM, _pinDIR;		//motor pins
@@ -35,13 +30,19 @@ private:
 	long prevT;
 	float deltaT;
 	
+	
 	//Velocity and low-pass filter
 	float velocity1;
 	float v1;
 	
 	float v1Prev;
 
-	//Regulator
+	//Regulator	
+	float _Kp;
+	float _Ki;
+	float _Kd;
+	bool _reverseFlag;
+
 	float u;
 	float e;
 	float eprev;
